@@ -15,6 +15,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Route as rootRoute } from './routes/__root'
 import { Route as PublicImport } from './routes/_public'
 import { Route as ProtectedImport } from './routes/_protected'
+import { Route as ProtectedDropzoneImport } from './routes/_protected/dropzone'
 
 // Create Virtual Routes
 
@@ -23,9 +24,6 @@ const PublicRegisterLazyImport = createFileRoute('/_public/register')()
 const PublicLogoutLazyImport = createFileRoute('/_public/logout')()
 const PublicLoginLazyImport = createFileRoute('/_public/login')()
 const ProtectedProjectIdLazyImport = createFileRoute('/_protected/$projectId')()
-const ProtectedAssetsProjectIdLazyImport = createFileRoute(
-  '/_protected/assets/$projectId',
-)()
 
 // Create/Update Routes
 
@@ -72,13 +70,10 @@ const ProtectedProjectIdLazyRoute = ProtectedProjectIdLazyImport.update({
   import('./routes/_protected/$projectId.lazy').then((d) => d.Route),
 )
 
-const ProtectedAssetsProjectIdLazyRoute =
-  ProtectedAssetsProjectIdLazyImport.update({
-    path: '/assets/$projectId',
-    getParentRoute: () => ProtectedRoute,
-  } as any).lazy(() =>
-    import('./routes/_protected/assets.$projectId.lazy').then((d) => d.Route),
-  )
+const ProtectedDropzoneRoute = ProtectedDropzoneImport.update({
+  path: '/dropzone',
+  getParentRoute: () => ProtectedRoute,
+} as any)
 
 // Populate the FileRoutesByPath interface
 
@@ -91,6 +86,10 @@ declare module '@tanstack/react-router' {
     '/_public': {
       preLoaderRoute: typeof PublicImport
       parentRoute: typeof rootRoute
+    }
+    '/_protected/dropzone': {
+      preLoaderRoute: typeof ProtectedDropzoneImport
+      parentRoute: typeof ProtectedImport
     }
     '/_protected/$projectId': {
       preLoaderRoute: typeof ProtectedProjectIdLazyImport
@@ -112,10 +111,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedIndexLazyImport
       parentRoute: typeof ProtectedImport
     }
-    '/_protected/assets/$projectId': {
-      preLoaderRoute: typeof ProtectedAssetsProjectIdLazyImport
-      parentRoute: typeof ProtectedImport
-    }
   }
 }
 
@@ -123,9 +118,9 @@ declare module '@tanstack/react-router' {
 
 export const routeTree = rootRoute.addChildren([
   ProtectedRoute.addChildren([
+    ProtectedDropzoneRoute,
     ProtectedProjectIdLazyRoute,
     ProtectedIndexLazyRoute,
-    ProtectedAssetsProjectIdLazyRoute,
   ]),
   PublicRoute.addChildren([
     PublicLoginLazyRoute,

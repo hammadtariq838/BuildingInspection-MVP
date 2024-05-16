@@ -1,11 +1,12 @@
 import {
   fetchBaseQuery,
   createApi,
+  FetchArgs,
+  BaseQueryApi,
 } from '@reduxjs/toolkit/query/react';
-
 import { BASE_URL } from '@/constants';
 import { RootState } from '@/app/store';
-import { Project } from '@/types';
+import { clearAuth } from '@/features/auth/authSlice';
 
 const baseQuery = fetchBaseQuery({
   baseUrl: BASE_URL + '/api',
@@ -19,41 +20,48 @@ const baseQuery = fetchBaseQuery({
   },
 });
 
+async function baseQueryWithAuth(
+  args: string | FetchArgs,
+  api: BaseQueryApi,
+  extra: object
+) {
+  const result = await baseQuery(args, api, extra);
+  // Dispatch the logout action on 401.
+  if (result.error && result.error.status === 401) {
+    api.dispatch(clearAuth());
+  }
+  return result;
+}
+
 export const projectApiSlice = createApi({
   reducerPath: 'projectApi',
-  baseQuery: baseQuery,
+  baseQuery: baseQueryWithAuth,
   tagTypes: ['Project'],
   endpoints: (builder) => ({
-    getProjects: builder.query<Project[], void>({
-      query: () => '/projects/',
+    getProjects: builder.query({
+      query: () => '/project/',
       providesTags: ['Project'],
     }),
-    getProjectById: builder.query({
-      query: (id) => `/projects/${id}/`,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    getProjectById: builder.query<any, string>({
+      query: (id) => `/project/${id}/`,
     }),
-    addProject: builder.mutation<
-      Project,
-      { project_name: string }
-    >({
+    addProject: builder.mutation({
       query: (newProject) => ({
-        url: '/projects/',
+        url: '/project/',
         method: 'POST',
         body: newProject,
       }),
       invalidatesTags: ['Project'],
     }),
-    updateProject: builder.mutation({
-      query: ({ id, ...rest }) => ({
-        url: `/projects/${id}/`,
-        method: 'PUT',
-        body: rest,
-      }),
-    }),
-    deleteProject: builder.mutation({
-      query: (id) => ({
-        url: `/projects/${id}/`,
-        method: 'DELETE',
-      }),
+    // deleteProject: builder.mutation({
+    //   query: (id) => ({
+    //     url: `/project/${id}/`,
+    //     method: 'DELETE',
+    //   }),
+    // }),
+    getTemplates: builder.query({
+      query: () => '/project/template',
     }),
   }),
 });
@@ -62,6 +70,6 @@ export const {
   useGetProjectsQuery,
   useGetProjectByIdQuery,
   useAddProjectMutation,
-  useUpdateProjectMutation,
-  useDeleteProjectMutation,
+  useGetTemplatesQuery,
+  // useDeleteProjectMutation,
 } = projectApiSlice;

@@ -20,6 +20,8 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
 
+    "noImplicitAny": false,
+
     /* Import alias */
     "baseUrl": ".",
     "paths": {

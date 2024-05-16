@@ -1,10 +1,12 @@
 import {
   fetchBaseQuery,
   createApi,
+  FetchArgs,
+  BaseQueryApi,
 } from '@reduxjs/toolkit/query/react';
-
 import { BASE_URL } from '@/constants';
 import { RootState } from '@/app/store';
+import { clearAuth } from '@/features/auth/authSlice';
 
 const baseQuery = fetchBaseQuery({
   baseUrl: BASE_URL,
@@ -19,17 +21,27 @@ const baseQuery = fetchBaseQuery({
 });
 // credentials: 'include',
 
+async function baseQueryWithAuth(
+  args: string | FetchArgs,
+  api: BaseQueryApi,
+  extra: object
+) {
+  const result = await baseQuery(args, api, extra);
+  // Dispatch the logout action on 401.
+  if (result.error && result.error.status === 401) {
+    api.dispatch(clearAuth());
+  }
+  return result;
+}
+
 export const userApiSlice = createApi({
   reducerPath: 'userApi',
-  baseQuery: baseQuery,
+  baseQuery: baseQueryWithAuth,
   tagTypes: ['User'],
   endpoints: (builder) => ({
-    login: builder.mutation<
-      { access: string; refresh: string },
-      { username: string; password: string }
-    >({
+    login: builder.mutation({
       query: (body) => ({
-        url: '/api/token/',
+        url: '/api/auth/login',
         method: 'POST',
         body,
       }),
@@ -39,7 +51,7 @@ export const userApiSlice = createApi({
       { username: string; password: string }
     >({
       query: (body) => ({
-        url: '/api/user/register/',
+        url: '/api/auth/register',
         method: 'POST',
         body,
       }),
@@ -49,7 +61,7 @@ export const userApiSlice = createApi({
       { refresh: string }
     >({
       query: () => ({
-        url: '/api/token/refresh/',
+        url: '/api/auth/refresh',
         method: 'POST',
       }),
     }),

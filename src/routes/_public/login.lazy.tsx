@@ -58,7 +58,7 @@ export function LoginForm() {
       console.log('login', res);
       toast.success('Login successful');
       dispatch(setAuth(
-        { accessToken: res.access, refreshToken: res.refresh }
+        { accessToken: res.token.access, refreshToken: res.token.refresh }
       ));
       navigate({ to: '/' });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

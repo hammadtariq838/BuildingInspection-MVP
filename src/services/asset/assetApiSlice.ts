@@ -1,11 +1,12 @@
 import {
   fetchBaseQuery,
   createApi,
+  FetchArgs,
+  BaseQueryApi,
 } from '@reduxjs/toolkit/query/react';
-
 import { BASE_URL } from '@/constants';
 import { RootState } from '@/app/store';
-import { Asset, AssetWithResults, Result } from '@/types';
+import { clearAuth } from '@/features/auth/authSlice';
 
 const baseQuery = fetchBaseQuery({
   baseUrl: BASE_URL + '/api',
@@ -19,79 +20,47 @@ const baseQuery = fetchBaseQuery({
   },
 });
 
+async function baseQueryWithAuth(
+  args: string | FetchArgs,
+  api: BaseQueryApi,
+  extra: object
+) {
+  const result = await baseQuery(args, api, extra);
+  // Dispatch the logout action on 401.
+  if (result.error && result.error.status === 401) {
+    api.dispatch(clearAuth());
+  }
+  return result;
+}
+
 export const assetApiSlice = createApi({
   reducerPath: 'assetApi',
-  baseQuery: baseQuery,
+  baseQuery: baseQueryWithAuth,
   tagTypes: ['Asset'],
   endpoints: (builder) => ({
-    // getAssetsWithResults: builder.query<
-    //   AssetWithResults[],
-    //   {
-    //     projectId: string;
-    //   }
-    // >({
-    //   query: ({ projectId }) =>
-    //     `/projects/${projectId}/assets-with-results/`,
-    // }),
-    processAssets: builder.mutation<
-      Result[],
-      { projectId: string }
-    >({
-      query: ({ projectId }) => ({
-        url: `/projects/${projectId}/process-assets/`,
-        method: 'POST',
-      }),
+    getAssets: builder.query({
+      query: ({ projectId }) =>
+        `/project/${projectId}/asset/`,
+      providesTags: ['Asset'],
     }),
-    bulkUploadAssets: builder.mutation<
-      Asset[],
-      { projectId: string; asset_images: FormData }
-    >({
+    getAssetById: builder.query({
+      query: ({ projectId, id }) =>
+        `/project/${projectId}/asset/${id}/`,
+      providesTags: ['Asset'],
+    }),
+    addAsset: builder.mutation({
       query: ({ projectId, asset_images }) => ({
-        url: `/projects/${projectId}/bulk-upload/`,
+        url: `/project/${projectId}/asset/`,
         method: 'POST',
         body: asset_images,
       }),
-    }),
-    getAssetsByProject: builder.query<
-      AssetWithResults[],
-      { projectId: string }
-    >({
-      query: ({ projectId }) =>
-        `/assets/?project=${projectId}`,
-    }),
-    getAssetById: builder.query({
-      query: (id) => `/assets/${id}/`,
-    }),
-    addAsset: builder.mutation({
-      query: (newAsset) => ({
-        url: '/assets/',
-        method: 'POST',
-        body: newAsset,
-      }),
-    }),
-    updateAsset: builder.mutation({
-      query: ({ id, ...rest }) => ({
-        url: `/assets/${id}/`,
-        method: 'PUT',
-        body: rest,
-      }),
-    }),
-    deleteAsset: builder.mutation({
-      query: (id) => ({
-        url: `/assets/${id}/`,
-        method: 'DELETE',
-      }),
+      invalidatesTags: ['Asset'],
     }),
   }),
 });
 
 export const {
-  // useGetAssetsWithResultsQuery,
-  useProcessAssetsMutation,
-  useBulkUploadAssetsMutation,
-  useGetAssetsByProjectQuery,
+  useGetAssetsQuery,
   useGetAssetByIdQuery,
   useAddAssetMutation,
-  useUpdateAssetMutation,
-  useDeleteAssetMutation,
 } = assetApiSlice;
